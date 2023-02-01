@@ -7,10 +7,14 @@ from aiogram.types import ReplyKeyboardRemove
 from requests import get
 from config import pay_token
 from aiogram.types.message import ContentType
-price = [LabeledPrice(label='Наушники', amount=40000)]
-from keyboard import menu_main, menu_back, menu_gender, menu_basic
-
+from keyboard import menu_main, menu_back, menu_gender, menu_basic, menu_database
+from sql import DateBase
 from fsm_state import Bio
+import random
+
+price = [LabeledPrice(label='Наушники', amount=40000)]
+
+db = DateBase("db.db")
 
 
 @dp.message_handler(Command('start'))
@@ -56,7 +60,8 @@ async def step1(message: Message, state: FSMContext):
 async def echo_photo_bot(message: Message, state: FSMContext):
     data = await state.get_data()
     text = data.get('gender')
-    await bot.send_photo(message.chat.id, message.photo[0].file_id, caption=f"{message.from_user.username} , {text}")
+    await bot.send_photo(message.chat.id, message.photo[0].file_id, caption=f"Имя - {message.from_user.username}\n"
+                                                                            f"Пол - {text}")
 
     await bot.send_message(message.chat.id, text='Вернуться на главное меню', reply_markup=menu_basic)
     await state.finish()
@@ -113,6 +118,57 @@ async def s_pay(message: Message):
                            reply_markup=menu_main)
 
 
-@dp.message_handler(text_contains='buy11')
-async def ddf(message: Message):
-    await bot.send_message(message.chat.id, 'proshlo')
+@dp.callback_query_handler(text_contains='database')
+async def menu(call: CallbackQuery):
+    await call.message.edit_text(text='Список заданий',
+                                 reply_markup=menu_database)
+
+
+@dp.callback_query_handler(text_contains='add_user')
+async def menu(call: CallbackQuery):
+    num = random.randint(1, 100)
+    try:
+        await db.add_users(call.from_user.id, call.message.chat.first_name, call.from_user.username, num)
+    except Exception as e:
+        pass
+    finally:
+        await call.message.edit_text(text='Список заданий', reply_markup=menu_database)
+
+
+@dp.callback_query_handler(text_contains='user_presence')
+async def presence(call: CallbackQuery):
+    try:
+        k = await db.user_presence(call.from_user.id)
+        if k == 0:
+            await call.message.edit_text(text='Пользователь отсутвует', reply_markup=menu_database)
+        else:
+            await call.message.edit_text(text='Пользователь есть в базе', reply_markup=menu_database)
+    except Exception as e:
+        await call.message.edit_text(text='Ошибка', reply_markup=menu_database)
+
+
+@dp.callback_query_handler(text_contains='change_name')
+async def cnahge(call: CallbackQuery):
+    try:
+        await db.update_name(call.from_user.id)
+        await call.message.edit_text(text='Имя изменено', reply_markup=menu_database)
+    except Exception as e:
+        await call.message.edit_text(text='Имя не изменено', reply_markup=menu_database)
+
+
+@dp.callback_query_handler(text_contains='delete_user')
+async def delet(call: CallbackQuery):
+    try:
+        await db.user_del(call.from_user.id)
+        await call.message.edit_text(text='Пользователь удален', reply_markup=menu_database)
+    except Exception as e:
+        await call.message.edit_text(text='Пользователь не удален', reply_markup=menu_database)
+
+
+@dp.callback_query_handler(text_contains='take_num')
+async def delet(call: CallbackQuery):
+    try:
+        num = await db.take_num(call.from_user.id)
+        await call.message.edit_text(text=f'{num}')
+    except Exception as e:
+        await call.message.edit_text(text='Ошибка')

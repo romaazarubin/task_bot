@@ -50,3 +50,23 @@ menu_basic = ReplyKeyboardMarkup(
     resize_keyboard=True
     #one_time_keyboard=True
 )
+
+menu_database = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Добавить пользователя', callback_data='add_user')
+        ],
+        [
+            InlineKeyboardButton(text='Проверить наличие', callback_data='user_presence')
+        ],
+        [
+            InlineKeyboardButton(text='Изменить имя', callback_data='change_name')
+        ],
+        [
+            InlineKeyboardButton(text='Удалить пользователя', callback_data='delete_users')
+        ],
+        [
+            InlineKeyboardButton(text='Получить число', callback_data='take_num')
+        ]
+    ]
+)
